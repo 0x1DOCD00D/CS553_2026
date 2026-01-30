@@ -10,6 +10,10 @@ project/target/
 project/project/
 .bsp/
 
+# SBT installation (users should install SBT themselves)
+sbt/
+sbt-*.tgz
+
 # IDE
 .idea/
 .vscode/
