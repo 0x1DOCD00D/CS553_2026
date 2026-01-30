@@ -81,7 +81,6 @@ Follow the upstream NetGameSim build instructions to ensure you can generate a g
 
 Add the following section to your README, ideally right after Getting started and before the actor template section.
 
-```markdown
 ## Akka learning examples by Prof. Grechanik
 
 Before you wire NetGameSim graphs into actors, spend 30 to 60 minutes with the small Akka experiments in the PLANE repository. These files are short, runnable, and they demonstrate the exact patterns this project relies on.
@@ -93,50 +92,36 @@ Most files include an @main entry point or extend App. Run them from sbt by invo
 
 Suggested reading order is shown below.
 
-Basic actor messaging and forwarding
-https://github.com/0x1DOCD00D/PLANE/blob/master/src/main/scala/Akka/BasicActorComm.scala
+Basic actor [messaging and forwarding](https://github.com/0x1DOCD00D/PLANE/blob/master/src/main/scala/Akka/BasicActorComm.scala).
 This is the smallest example of creating an ActorSystem, instantiating actors with Props, sending messages with !, replying to sender(), and forwarding a message to preserve the original sender.
 
-Scheduling and timers
-https://github.com/0x1DOCD00D/PLANE/blob/master/src/main/scala/Akka/ScheduleEventsRandomIntervals.scala
+[Scheduling and timers](https://github.com/0x1DOCD00D/PLANE/blob/master/src/main/scala/Akka/ScheduleEventsRandomIntervals.scala).
 This shows how to drive a computation with the Akka scheduler instead of Thread.sleep. This is the pattern you will reuse for timer nodes in the simulator.
 
-Actor state machines with context.become
-https://github.com/0x1DOCD00D/PLANE/blob/master/src/main/scala/Akka/StateMachineWithActors.scala
+Actor [state machines with context.become](https://github.com/0x1DOCD00D/PLANE/blob/master/src/main/scala/Akka/StateMachineWithActors.scala).
 This demonstrates a state machine implemented as an actor that switches receive handlers. This maps directly to algorithm phases such as snapshot colored vs uncolored or termination passive vs active.
 
-Diffusing computation on a tree
-https://github.com/0x1DOCD00D/PLANE/blob/master/src/main/scala/Akka/DiffusingComputation.scala
+[Diffusing computation on a tree](https://github.com/0x1DOCD00D/PLANE/blob/master/src/main/scala/Akka/DiffusingComputation.scala).
 This is a simple diffusion style computation that creates a tree of actors, sends workload down, and aggregates acknowledgements up. This is the mental model behind many termination detection algorithms.
 
-ActorSystem lifecycle and coordinated shutdown
-https://github.com/0x1DOCD00D/PLANE/blob/master/src/main/scala/Akka/ActorSystemExperiments.scala
+ActorSystem [lifecycle and coordinated shutdown](https://github.com/0x1DOCD00D/PLANE/blob/master/src/main/scala/Akka/ActorSystemExperiments.scala)
 This shows system termination, registerOnTermination hooks, and adding tasks to CoordinatedShutdown. You will need these patterns to stop long simulations cleanly and to flush metrics.
 
-Generic messages with Scala Dynamic
-https://github.com/0x1DOCD00D/PLANE/blob/master/src/main/scala/Akka/AkkaSelectDynamic.scala
+[Generic messages with Scala Dynamic](https://github.com/0x1DOCD00D/PLANE/blob/master/src/main/scala/Akka/AkkaSelectDynamic.scala).
 This demonstrates sending a record-like object and mutating its fields through selectDynamic and updateDynamic. You do not have to use Dynamic, but it is a useful contrast for why explicit message ADTs are safer.
 
-Remote actors, actorSelection, and deployment
-https://github.com/0x1DOCD00D/PLANE/blob/master/src/main/scala/Akka/RemoteActorExperiment1.scala
+[Remote actors, actorSelection, and deployment](https://github.com/0x1DOCD00D/PLANE/blob/master/src/main/scala/Akka/RemoteActorExperiment1.scala).
 This contains a local and a remote setup, shows actor paths, actorSelection with Identify, and RemoteScope deployment. This is the shortest path from local actors to a distributed topology.
 
-Chit chat message protocol and remote handshake
-https://github.com/0x1DOCD00D/PLANE/blob/master/src/main/scala/Akka/ChitChatMessages.scala
-https://github.com/0x1DOCD00D/PLANE/blob/master/src/main/scala/Akka/ChatActor.scala
-https://github.com/0x1DOCD00D/PLANE/blob/master/src/main/scala/Akka/ChitActor.scala
+[Chit chat message protocol and remote handshake](https://github.com/0x1DOCD00D/PLANE/blob/master/src/main/scala/Akka/ChitChatMessages.scala) with [chat](https://github.com/0x1DOCD00D/PLANE/blob/master/src/main/scala/Akka/ChatActor.scala) and [chit](https://github.com/0x1DOCD00D/PLANE/blob/master/src/main/scala/Akka/ChitActor.scala).
 These files define a tiny message protocol and two actors that start and stop a chat, including a remote identity handshake. This mirrors how you will define your own message types and control messages for distributed algorithms.
 
-Typed Akka HTTP microservice
-https://github.com/0x1DOCD00D/PLANE/blob/master/src/main/scala/Akka/HttpBasicService.scala
+Typed Akka HTTP [microservice](https://github.com/0x1DOCD00D/PLANE/blob/master/src/main/scala/Akka/HttpBasicService.scala).
 This is a minimal typed ActorSystem hosting an Akka HTTP route. It is optional for this project, but it is a good reference if you expose simulation controls through an HTTP endpoint.
 
-Akka Streams building blocks and graph wiring
-https://github.com/0x1DOCD00D/PLANE/blob/master/src/main/scala/Akka/StreamItUpAndDown.scala
-https://github.com/0x1DOCD00D/PLANE/blob/master/src/main/scala/Akka/StreamGraphDocExample.scala
-These show Source, Flow, Sink, async boundaries, and GraphDSL wiring. Streams are optional, but they are handy if you want to build trace pipelines or online aggregation of metrics.
+Akka Streams building blocks and [graph wiring](https://github.com/0x1DOCD00D/PLANE/blob/master/src/main/scala/Akka/StreamItUpAndDown.scala) and [stream graph doc](https://github.com/0x1DOCD00D/PLANE/blob/master/src/main/scala/Akka/StreamGraphDocExample.scala). These show Source, Flow, Sink, async boundaries, and GraphDSL wiring. Streams are optional, but they are handy if you want to build trace pipelines or online aggregation of metrics.
 
-How these examples map to this project
+## How these examples map to this project
 
 Timer nodes should follow the scheduling pattern from ScheduleEventsRandomIntervals.scala. Use the scheduler to send tick messages without blocking actor threads.
 
@@ -147,16 +132,8 @@ Algorithm modules should follow the state switching pattern from StateMachineWit
 Termination style workloads can be modeled like DiffusingComputation.scala. Make sure you can observe when all work has diffused and acknowledgements have returned.
 
 Simulation shutdown and metrics flush should follow ActorSystemExperiments.scala. Terminate cleanly and deterministically.
-```
 
-The file list and links come from the PLANE Akka examples directory contents. ([GitHub API][1])
-The brief explanations are based on the corresponding example source files. ([GitHub][2])
-
-[1]: https://api.github.com/repos/0x1DOCD00D/PLANE/contents/src/main/scala/Akka?ref=master "api.github.com"
-[2]: https://raw.githubusercontent.com/0x1DOCD00D/PLANE/master/src/main/scala/Akka/BasicActorComm.scala "raw.githubusercontent.com"
-
-
-A minimal command line workflow is shown below.
+## A minimal command line workflow is shown below.
 
 ```bash
 sbt clean test
