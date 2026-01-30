@@ -40,7 +40,7 @@ object EchoAlgorithm {
             ctx.log.info(s"[$nodeId] Initiating echo wave")
             currentWaveId += 1
             broadcast(Wave(nodeId, currentWaveId, ctx.self))
-            if (peers.isEmpty) {
+            if (getPeers.isEmpty) {
               ctx.log.info(s"[$nodeId] No peers - algorithm complete")
             }
           }
@@ -54,10 +54,10 @@ object EchoAlgorithm {
             ctx.log.info(s"[$nodeId] Received wave from $initiator, forwarding to neighbors")
             
             // Forward to all neighbors except parent
-            peers.filterNot(_ == sender).foreach(_ ! Wave(initiator, waveId, ctx.self))
+            getPeers.filterNot(_ == sender).foreach(_ ! Wave(initiator, waveId, ctx.self))
             
             // If no children, send echo immediately
-            if (peers.size <= 1) {
+            if (getPeers.size <= 1) {
               sendEcho(ctx)
             }
           }
@@ -65,12 +65,12 @@ object EchoAlgorithm {
         
         case Echo(from, waveId, sender) if waveId == currentWaveId =>
           receivedEchoes = receivedEchoes + sender
-          ctx.log.info(s"[$nodeId] Received echo from $from (${receivedEchoes.size}/${peers.size - 1})")
+          ctx.log.info(s"[$nodeId] Received echo from $from (${receivedEchoes.size}/${getPeers.size - 1})")
           
           // If received echoes from all children, send echo to parent
-          if (receivedEchoes.size == peers.size - 1 && parent.isDefined) {
+          if (receivedEchoes.size == getPeers.size - 1 && parent.isDefined) {
             sendEcho(ctx)
-          } else if (receivedEchoes.size == peers.size && isInitiator) {
+          } else if (receivedEchoes.size == getPeers.size && isInitiator) {
             ctx.log.info(s"[$nodeId] ALGORITHM COMPLETE - Received all echoes")
           }
           Behaviors.same
@@ -81,7 +81,7 @@ object EchoAlgorithm {
             "isInitiator" -> isInitiator,
             "waveReceived" -> waveReceived,
             "echoesReceived" -> receivedEchoes.size,
-            "totalPeers" -> peers.size
+            "totalPeers" -> getPeers.size
           )
           replyTo ! CommonMessages.StateResponse(nodeId, state)
           Behaviors.same

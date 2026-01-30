@@ -48,7 +48,12 @@ case class NetworkMessage(
  */
 abstract class BaseDistributedNode(val nodeId: String) extends DistributedNode {
   
-  protected var peers: Set[ActorRef[DistributedMessage]] = Set.empty
+  private var peers: Set[ActorRef[DistributedMessage]] = Set.empty
+  
+  /**
+   * Get the current set of peer references
+   */
+  protected def getPeers: Set[ActorRef[DistributedMessage]] = peers
   
   /**
    * Handle initialization of the node
@@ -93,6 +98,6 @@ abstract class BaseDistributedNode(val nodeId: String) extends DistributedNode {
    * Send a message to all peers
    */
   protected def broadcast(msg: DistributedMessage): Unit = {
-    peers.foreach(_ ! msg)
+    getPeers.foreach(_ ! msg)
   }
 }

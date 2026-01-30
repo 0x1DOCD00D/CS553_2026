@@ -19,6 +19,9 @@ object TokenRingAlgorithm {
   sealed trait TokenMessage extends DistributedMessage
   case class Token(value: Int) extends TokenMessage
   case class SetNext(next: ActorRef[DistributedMessage]) extends TokenMessage
+  case object EnterCriticalSection extends TokenMessage
+  case object ExitCriticalSection extends TokenMessage
+  case object PassTokenMessage extends TokenMessage
   
   class TokenRingNode(
     nodeId: String,
@@ -28,6 +31,7 @@ object TokenRingAlgorithm {
     private var nextNode: Option[ActorRef[DistributedMessage]] = None
     private var hasToken: Boolean = hasInitialToken
     private var criticalSectionCount: Int = 0
+    private var inCriticalSection: Boolean = false
     private val random = new Random()
     
     override protected def onInitialize(
@@ -54,7 +58,7 @@ object TokenRingAlgorithm {
         case CommonMessages.Start() =>
           if (hasToken) {
             ctx.log.info(s"[$nodeId] Starting with token")
-            scheduleTokenPass(ctx)
+            ctx.self ! EnterCriticalSection
           }
           Behaviors.same
         
@@ -67,51 +71,56 @@ object TokenRingAlgorithm {
           hasToken = true
           ctx.log.info(s"[$nodeId] Received token (value: $value)")
           
-          // Simulate critical section
-          enterCriticalSection(ctx)
-          
-          // Pass token to next node
-          scheduleTokenPass(ctx)
+          // Schedule entry to critical section
+          ctx.self ! EnterCriticalSection
+          Behaviors.same
+        
+        case EnterCriticalSection =>
+          if (hasToken && !inCriticalSection) {
+            inCriticalSection = true
+            criticalSectionCount += 1
+            ctx.log.info(s"[$nodeId] *** ENTERING CRITICAL SECTION (count: $criticalSectionCount) ***")
+            
+            // Simulate work in critical section by scheduling exit
+            import scala.concurrent.duration._
+            val workDuration = (100 + random.nextInt(200)).milliseconds
+            ctx.scheduleOnce(workDuration, ctx.self, ExitCriticalSection)
+          }
+          Behaviors.same
+        
+        case ExitCriticalSection =>
+          if (inCriticalSection) {
+            ctx.log.info(s"[$nodeId] Exiting critical section")
+            inCriticalSection = false
+            
+            // Schedule token pass
+            import scala.concurrent.duration._
+            val passDuration = (500 + random.nextInt(500)).milliseconds
+            ctx.scheduleOnce(passDuration, ctx.self, PassTokenMessage)
+          }
+          Behaviors.same
+        
+        case PassTokenMessage =>
+          if (hasToken && nextNode.isDefined) {
+            val tokenValue = criticalSectionCount
+            ctx.log.info(s"[$nodeId] Passing token to next node (value: $tokenValue)")
+            nextNode.get ! Token(tokenValue)
+            hasToken = false
+          }
           Behaviors.same
         
         case CommonMessages.GetState(replyTo) =>
           val state = Map(
             "nodeId" -> nodeId,
             "hasToken" -> hasToken,
-            "criticalSectionCount" -> criticalSectionCount
+            "criticalSectionCount" -> criticalSectionCount,
+            "inCriticalSection" -> inCriticalSection
           )
           replyTo ! CommonMessages.StateResponse(nodeId, state)
           Behaviors.same
         
         case _ =>
           Behaviors.same
-      }
-    }
-    
-    private def enterCriticalSection(ctx: ActorContext[DistributedMessage]): Unit = {
-      criticalSectionCount += 1
-      ctx.log.info(s"[$nodeId] *** ENTERING CRITICAL SECTION (count: $criticalSectionCount) ***")
-      
-      // Simulate some work
-      Thread.sleep(100 + random.nextInt(200))
-      
-      ctx.log.info(s"[$nodeId] Exiting critical section")
-    }
-    
-    private def scheduleTokenPass(ctx: ActorContext[DistributedMessage]): Unit = {
-      // Wait a bit before passing the token
-      ctx.system.scheduler.scheduleOnce(
-        scala.concurrent.duration.FiniteDuration(500 + random.nextInt(500), scala.concurrent.duration.MILLISECONDS),
-        () => passToken(ctx)
-      )(ctx.executionContext)
-    }
-    
-    private def passToken(ctx: ActorContext[DistributedMessage]): Unit = {
-      if (hasToken && nextNode.isDefined) {
-        val tokenValue = criticalSectionCount
-        ctx.log.info(s"[$nodeId] Passing token to next node (value: $tokenValue)")
-        nextNode.get ! Token(tokenValue)
-        hasToken = false
       }
     }
   }

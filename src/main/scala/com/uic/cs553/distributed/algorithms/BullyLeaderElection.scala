@@ -66,6 +66,10 @@ object BullyLeaderElection {
           ctx.log.info(s"[$nodeId] Acknowledged new leader: $leaderId (ID: $leaderIdNum)")
           Behaviors.same
         
+        case CheckElectionTimeout =>
+          checkElectionResult(ctx)
+          Behaviors.same
+        
         case CommonMessages.GetState(replyTo) =>
           val state = Map(
             "nodeId" -> nodeId,
@@ -90,20 +94,9 @@ object BullyLeaderElection {
       // Send election to all nodes (in a real implementation, would only send to higher IDs)
       broadcast(Election(nodeId, nodeIdNum, ctx.self))
       
-      // Schedule a check to see if we won (simplified - in production use timers)
-      ctx.scheduleOnce(
-        scala.concurrent.duration.FiniteDuration(2, scala.concurrent.duration.SECONDS),
-        ctx.self,
-        new DistributedMessage {
-          override def toString: String = "CheckElectionResult"
-        }
-      )
-      
-      // Check if we should declare victory
-      ctx.system.scheduler.scheduleOnce(
-        scala.concurrent.duration.FiniteDuration(2, scala.concurrent.duration.SECONDS),
-        () => checkElectionResult(ctx)
-      )(ctx.executionContext)
+      // Use a message-based timer instead of scheduler to avoid race conditions
+      import scala.concurrent.duration._
+      ctx.scheduleOnce(2.seconds, ctx.self, CheckElectionTimeout)
     }
     
     private def checkElectionResult(ctx: ActorContext[DistributedMessage]): Unit = {
@@ -116,4 +109,7 @@ object BullyLeaderElection {
       }
     }
   }
+  
+  // Add message for election timeout
+  case object CheckElectionTimeout extends DistributedMessage
 }
