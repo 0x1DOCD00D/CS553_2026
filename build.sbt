@@ -15,10 +15,11 @@ libraryDependencies ++= Seq(
 
 // Uncomment the following lines when Cinnamon credentials are configured
 // Note: Cinnamon supports Akka. For Pekko, you would need Pekko-specific monitoring solutions
+// IMPORTANT: Verify Cinnamon version compatibility with Scala 3.7 before enabling
 // See README.md for Akka + Cinnamon setup instructions
 /*
 lazy val akkaVersion = "2.9.8"
-lazy val cinnamonVersion = "2.22.0"
+lazy val cinnamonVersion = "2.22.0"  // Check compatibility with Scala 3.7
 
 credentials += Credentials(Path.userHome / ".lightbend" / "commercial.credentials")
 

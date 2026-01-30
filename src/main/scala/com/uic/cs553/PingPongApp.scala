@@ -3,6 +3,7 @@ package com.uic.cs553
 import org.apache.pekko.actor.typed.{ActorRef, ActorSystem, Behavior}
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.slf4j.LoggerFactory
+import scala.concurrent.duration._
 
 /**
  * Ping-Pong Actor System demonstrating message exchange with Apache Pekko (Akka fork) Typed
@@ -18,32 +19,33 @@ case object Start extends Message
 case object Stop extends Message
 
 object PingActor {
-  def apply(pongActor: ActorRef[Message], maxRounds: Int): Behavior[Message] = {
+  def apply(pongActor: ActorRef[Message], maxRounds: Int): Behavior[Message] = 
+    active(pongActor, maxRounds, 0)
+  
+  private def active(pongActor: ActorRef[Message], maxRounds: Int, count: Int): Behavior[Message] = {
     val logger = LoggerFactory.getLogger("PingActor")
     
     Behaviors.setup { context =>
-      var count = 0
-      
       Behaviors.receiveMessage {
         case Start =>
           logger.info(s"PingActor: Starting ping-pong game with max $maxRounds rounds")
-          count += 1
-          logger.info(s"PingActor: Sending Ping #$count")
+          val newCount = count + 1
+          logger.info(s"PingActor: Sending Ping #$newCount")
           pongActor ! Ping(context.self)
-          Behaviors.same
+          active(pongActor, maxRounds, newCount)
           
         case Pong(replyTo) =>
-          count += 1
-          logger.info(s"PingActor: Received Pong, sending Ping #$count")
+          val newCount = count + 1
+          logger.info(s"PingActor: Received Pong, sending Ping #$newCount")
           
-          if (count >= maxRounds) {
+          if (newCount >= maxRounds) {
             logger.info(s"PingActor: Reached max rounds ($maxRounds), stopping")
             replyTo ! Stop
             Behaviors.stopped
           } else {
-            Thread.sleep(100) // Small delay to simulate processing
-            replyTo ! Ping(context.self)
-            Behaviors.same
+            // Use scheduler instead of Thread.sleep to avoid blocking dispatcher
+            context.scheduleOnce(100.millis, replyTo, Ping(context.self))
+            active(pongActor, maxRounds, newCount)
           }
           
         case Stop =>
@@ -52,26 +54,26 @@ object PingActor {
           
         case _ =>
           logger.warn("PingActor: Received unexpected message")
-          Behaviors.same
+          active(pongActor, maxRounds, count)
       }
     }
   }
 }
 
 object PongActor {
-  def apply(): Behavior[Message] = {
+  def apply(): Behavior[Message] = active(0)
+  
+  private def active(count: Int): Behavior[Message] = {
     val logger = LoggerFactory.getLogger("PongActor")
     
     Behaviors.setup { context =>
-      var count = 0
-      
       Behaviors.receiveMessage {
         case Ping(replyTo) =>
-          count += 1
-          logger.info(s"PongActor: Received Ping, sending Pong #$count")
-          Thread.sleep(100) // Small delay to simulate processing
-          replyTo ! Pong(context.self)
-          Behaviors.same
+          val newCount = count + 1
+          logger.info(s"PongActor: Received Ping, sending Pong #$newCount")
+          // Use scheduler instead of Thread.sleep to avoid blocking dispatcher
+          context.scheduleOnce(100.millis, replyTo, Pong(context.self))
+          active(newCount)
           
         case Stop =>
           logger.info("PongActor: Received Stop signal")
@@ -79,7 +81,7 @@ object PongActor {
           
         case _ =>
           logger.warn("PongActor: Received unexpected message")
-          Behaviors.same
+          active(count)
       }
     }
   }
@@ -121,7 +123,8 @@ object PingPongApp {
     // Start the game
     system ! Start
     
-    // Wait for completion
+    // Wait for system to complete gracefully
+    // Note: Increase this timeout if you increase the number of rounds or message delay
     Thread.sleep(5000)
     
     logger.info("=== Shutting down Ping-Pong Actor System ===")

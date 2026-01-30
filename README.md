@@ -117,8 +117,8 @@ To use Akka with Lightbend Cinnamon for advanced monitoring:
 
 ### Customization
 
-- **Number of Rounds**: Modify the `maxRounds` parameter in `PingPongApp.scala` (line ~100)
-- **Message Delay**: Adjust `Thread.sleep(100)` in actor behaviors to change processing delay
+- **Number of Rounds**: Modify the `maxRounds` parameter in `PingPongApp.scala` (line 97)
+- **Message Delay**: Adjust the delay duration in `context.scheduleOnce(100.millis, ...)` calls (currently 100 milliseconds)
 - **Actor Configuration**: Modify dispatcher settings in `application.conf`
 - **Logging Level**: Change `loglevel` in `application.conf` or `logback.xml`
 
