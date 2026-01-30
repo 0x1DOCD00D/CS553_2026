@@ -3,13 +3,13 @@ An open-source repository for a grad-level course at UIC on distributed systems
 
 ## Ping-Pong Actors Application
 
-A baseline Scala 3.7 application demonstrating Akka Typed actors with Cinnamon instrumentation. The application creates two actors (PingActor and PongActor) that exchange messages in a ping-pong style.
+A baseline Scala 3.7 application demonstrating typed actors with message exchange in a ping-pong style. The application currently uses **Apache Pekko** (an Apache Software Foundation fork of Akka that maintains API compatibility). Instructions for using Akka with Cinnamon instrumentation are provided below.
 
 ### Prerequisites
 
-- Java 11 or higher
+- Java 11 or higher (Java 17 recommended)
 - SBT 1.10.6 or higher
-- Lightbend Cinnamon credentials (optional, for full instrumentation)
+- Lightbend Cinnamon credentials (optional, only if using Akka + Cinnamon)
 
 ### Project Structure
 
@@ -18,30 +18,29 @@ A baseline Scala 3.7 application demonstrating Akka Typed actors with Cinnamon i
 ├── build.sbt                  # SBT build configuration
 ├── project/
 │   ├── build.properties       # SBT version
-│   └── plugins.sbt           # SBT plugins including Cinnamon
+│   └── plugins.sbt           # SBT plugins (Cinnamon plugin commented out)
 └── src/
     └── main/
         ├── scala/
         │   └── com/uic/cs553/
         │       └── PingPongApp.scala  # Main application with Ping/Pong actors
         └── resources/
-            ├── application.conf       # Akka and Cinnamon configuration
+            ├── application.conf       # Pekko configuration (Akka+Cinnamon config commented)
             └── logback.xml           # Logging configuration
 ```
 
 ### Features
 
 - **Scala 3.7**: Uses the latest Scala 3 version
-- **Akka Typed Actors**: Implements type-safe actor model
-- **Ping-Pong Pattern**: Two actors exchanging messages
-- **Cinnamon Instrumentation**: Lightbend Cinnamon for monitoring and metrics
-- **Prometheus Metrics**: Metrics exposed on port 9001
+- **Typed Actors**: Implements type-safe actor model using Apache Pekko Typed
+- **Ping-Pong Pattern**: Two actors (PingActor and PongActor) exchanging messages
+- **Configurable Rounds**: Configurable number of message exchanges (default: 10)
+- **Logging**: Comprehensive logging of actor lifecycle and message flow
+- **Ready for Cinnamon**: Easy migration path to Akka with Lightbend Cinnamon instrumentation
 
 ### Building and Running
 
-#### Without Cinnamon (if credentials not configured)
-
-If you don't have Lightbend commercial credentials, you can comment out the Cinnamon-related dependencies in `build.sbt`:
+#### Current Implementation (Apache Pekko)
 
 ```bash
 # Compile the project
@@ -51,37 +50,94 @@ sbt compile
 sbt run
 ```
 
-#### With Cinnamon (full instrumentation)
-
-1. Set up Lightbend commercial credentials in `~/.lightbend/commercial.credentials`
-2. Update the resolver URL in `build.sbt` with your actual credentials token
-3. Run with Cinnamon enabled:
-
-```bash
-sbt run
-```
-
 The application will:
 1. Create a PingActor and PongActor
-2. Exchange 10 ping-pong messages
-3. Log each message exchange
-4. Expose metrics on http://localhost:9001/metrics (with Cinnamon)
-5. Shut down gracefully
+2. Exchange 10 ping-pong messages (configurable)
+3. Log each message exchange with timestamps
+4. Shut down gracefully after completing all rounds
+
+#### Migrating to Akka with Cinnamon Instrumentation
+
+To use Akka with Lightbend Cinnamon for advanced monitoring:
+
+1. **Set up Lightbend credentials:**
+   - Create `~/.lightbend/commercial.credentials`
+   - Add your Lightbend commercial repository access token
+
+2. **Update `build.sbt`:**
+   - Comment out the Pekko dependencies
+   - Uncomment the Akka + Cinnamon section
+   - Replace `XXXXX` in the resolver URL with your actual token
+
+3. **Update `project/plugins.sbt`:**
+   - Uncomment the Cinnamon plugin line
+
+4. **Update `src/main/scala/com/uic/cs553/PingPongApp.scala`:**
+   - Change imports from `org.apache.pekko` to `akka`
+   - Update the startup log message if desired
+
+5. **Update `src/main/resources/application.conf`:**
+   - Replace the `pekko` configuration block with the `akka` and `cinnamon` blocks (see comments in file)
+
+6. **Run with Cinnamon:**
+   ```bash
+   sbt run
+   ```
+   - Metrics will be exposed on http://localhost:9001/metrics (Prometheus format)
 
 ### How It Works
 
-1. **PingActor**: Initiates the game and responds to Pong messages with Ping messages
-2. **PongActor**: Responds to Ping messages with Pong messages
-3. **Message Exchange**: Actors exchange messages until reaching the maximum round count (10 by default)
-4. **Cinnamon Monitoring**: Tracks actor metrics, message throughput, and system performance
+**Actor Model Components:**
+
+1. **PingActor**: 
+   - Initiates the ping-pong game when receiving `Start` message
+   - Responds to `Pong` messages by sending `Ping` messages
+   - Stops both actors after reaching maximum rounds
+
+2. **PongActor**: 
+   - Responds to `Ping` messages with `Pong` messages
+   - Stops when receiving `Stop` signal
+
+3. **Message Protocol**:
+   - `Ping(replyTo: ActorRef[Message])`: Request message containing sender reference
+   - `Pong(replyTo: ActorRef[Message])`: Response message containing sender reference
+   - `Start`: Signal to begin the ping-pong exchange
+   - `Stop`: Signal to terminate actors
+
+4. **Message Flow**:
+   ```
+   Main → PingPongApp: Start
+   PingPongApp → PingActor: Start
+   PingActor → PongActor: Ping(replyTo)
+   PongActor → PingActor: Pong(replyTo)
+   PingActor → PongActor: Ping(replyTo)
+   ... (continues for configured rounds)
+   PingActor → PongActor: Stop
+   ```
 
 ### Customization
 
-- Change the number of rounds by modifying the `maxRounds` parameter in `PingPongApp.scala`
-- Adjust Akka configuration in `src/main/resources/application.conf`
-- Modify Cinnamon settings in the same configuration file
+- **Number of Rounds**: Modify the `maxRounds` parameter in `PingPongApp.scala` (line ~100)
+- **Message Delay**: Adjust `Thread.sleep(100)` in actor behaviors to change processing delay
+- **Actor Configuration**: Modify dispatcher settings in `application.conf`
+- **Logging Level**: Change `loglevel` in `application.conf` or `logback.xml`
+
+### Example Output
+
+```
+01:23:20.232 [sbt-bg-threads-1] INFO  Main - === Starting Ping-Pong Actor System (Apache Pekko) ===
+01:23:20.786 [ping-pong-system-pekko.actor.default-dispatcher-5] INFO  PingPongApp - Setting up PingPong application
+01:23:20.790 [ping-pong-system-pekko.actor.default-dispatcher-6] INFO  PingActor - PingActor: Starting ping-pong game with max 10 rounds
+01:23:20.791 [ping-pong-system-pekko.actor.default-dispatcher-6] INFO  PingActor - PingActor: Sending Ping #1
+01:23:20.791 [ping-pong-system-pekko.actor.default-dispatcher-6] INFO  PongActor - PongActor: Received Ping, sending Pong #1
+01:23:20.892 [ping-pong-system-pekko.actor.default-dispatcher-5] INFO  PingActor - PingActor: Received Pong, sending Ping #2
+...
+01:23:22.499 [ping-pong-system-pekko.actor.default-dispatcher-5] INFO  PingActor - PingActor: Reached max rounds (10), stopping
+01:23:25.778 [sbt-bg-threads-1] INFO  Main - === Shutting down Ping-Pong Actor System ===
+```
 
 ### License
 
 See LICENSE file for details.
+
 

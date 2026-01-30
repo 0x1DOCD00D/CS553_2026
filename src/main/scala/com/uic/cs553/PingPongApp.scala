@@ -1,11 +1,13 @@
 package com.uic.cs553
 
-import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
-import akka.actor.typed.scaladsl.Behaviors
+import org.apache.pekko.actor.typed.{ActorRef, ActorSystem, Behavior}
+import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.slf4j.LoggerFactory
 
 /**
- * Ping-Pong Actor System demonstrating message exchange with Akka Typed and Cinnamon instrumentation
+ * Ping-Pong Actor System demonstrating message exchange with Apache Pekko (Akka fork) Typed
+ * Note: This implementation uses Apache Pekko, which is API-compatible with Akka.
+ * For Akka with Cinnamon instrumentation, see the commented build.sbt configuration.
  */
 
 // Message protocol
@@ -112,7 +114,7 @@ object PingPongApp {
   
   def main(args: Array[String]): Unit = {
     val logger = LoggerFactory.getLogger("Main")
-    logger.info("=== Starting Ping-Pong Actor System with Cinnamon Instrumentation ===")
+    logger.info("=== Starting Ping-Pong Actor System (Apache Pekko) ===")
     
     val system: ActorSystem[Message] = ActorSystem(PingPongApp(), "ping-pong-system")
     
