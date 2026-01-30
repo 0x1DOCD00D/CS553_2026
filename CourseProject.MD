@@ -1,6 +1,3 @@
-Updated README.md content is shown below.
-
-````markdown
 # NetGameSim to Akka Distributed Algorithms Simulator
 
 This repository is a course project that turns randomly generated graphs into a running message passing system. It starts from NetGameSim, an experimental platform that generates large random graphs, can perturb them, and exports artifacts for analysis and visualization.
@@ -9,16 +6,9 @@ The main outcome is a configurable Akka simulation where each graph node becomes
 
 Upstream links and the code walk through video are shown below.
 
-```text
-NetGameSim repository
-https://github.com/0x1DOCD00D/NetGameSim
+[NetGameSim repository](https://github.com/0x1DOCD00D/NetGameSim) and NetGameSim overview and [code walk through video](https://www.youtube.com/watch?v=6fdazJBkdjA&t=2658s)
 
-NetGameSim overview and code walk through video
-https://www.youtube.com/watch?v=6fdazJBkdjA&t=2658s
-
-Akka documentation home
-https://doc.akka.io/index.html
-````
+Akka documentation [home](https://doc.akka.io/index.html)
 
 ## What you will build
 
@@ -424,18 +414,4 @@ Correctness covers message handling, edge label enforcement, PDF driven traffic 
 Reproducibility covers fixed seeds, configuration driven experiments, and clear build instructions.
 
 Clarity covers code organization, documentation, and tests that justify important invariants.
-
-## References
-
-NetGameSim repository and documentation.
-
-NetGameSim code walk through video.
-
-Akka documentation.
-
-```
-
-Cinnamon setup details and examples are based on the Akka Insights documentation pages for sbt setup, configuration, and IDE javaagent usage. :contentReference[oaicite:0]{index=0}
-::contentReference[oaicite:1]{index=1}
-```
 
