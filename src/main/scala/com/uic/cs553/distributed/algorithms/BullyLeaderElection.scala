@@ -18,8 +18,8 @@ import com.uic.cs553.distributed.framework._
 object BullyLeaderElection {
   
   sealed trait LeaderMessage extends DistributedMessage
-  case class Election(from: String, fromId: Int) extends LeaderMessage
-  case class Alive(from: String) extends LeaderMessage
+  case class Election(from: String, fromId: Int, sender: ActorRef[DistributedMessage]) extends LeaderMessage
+  case class Alive(from: String, sender: ActorRef[DistributedMessage]) extends LeaderMessage
   case class Victory(leaderId: String, leaderIdNum: Int) extends LeaderMessage
   
   class BullyNode(
@@ -41,12 +41,12 @@ object BullyLeaderElection {
           startElection(ctx)
           Behaviors.same
         
-        case Election(from, fromId) =>
+        case Election(from, fromId, senderRef) =>
           ctx.log.info(s"[$nodeId] Received election request from $from (ID: $fromId)")
           
           if (fromId < nodeIdNum) {
             // Send alive message
-            ctx.sender() ! Alive(nodeId)
+            senderRef ! Alive(nodeId, ctx.self)
             
             // Start own election if not already in progress
             if (!electionInProgress) {
@@ -55,7 +55,7 @@ object BullyLeaderElection {
           }
           Behaviors.same
         
-        case Alive(from) =>
+        case Alive(from, sender) =>
           ctx.log.info(s"[$nodeId] Received alive message from $from")
           responsesReceived = responsesReceived + from
           Behaviors.same
@@ -88,7 +88,7 @@ object BullyLeaderElection {
       ctx.log.info(s"[$nodeId] Starting election with ID $nodeIdNum")
       
       // Send election to all nodes (in a real implementation, would only send to higher IDs)
-      broadcast(Election(nodeId, nodeIdNum))
+      broadcast(Election(nodeId, nodeIdNum, ctx.self))
       
       // Schedule a check to see if we won (simplified - in production use timers)
       ctx.scheduleOnce(

@@ -17,8 +17,8 @@ import com.uic.cs553.distributed.framework._
 object EchoAlgorithm {
   
   sealed trait EchoMessage extends DistributedMessage
-  case class Wave(initiator: String, waveId: Int) extends EchoMessage
-  case class Echo(from: String, waveId: Int) extends EchoMessage
+  case class Wave(initiator: String, waveId: Int, sender: ActorRef[DistributedMessage]) extends EchoMessage
+  case class Echo(from: String, waveId: Int, sender: ActorRef[DistributedMessage]) extends EchoMessage
   
   class EchoNode(
     nodeId: String,
@@ -39,22 +39,22 @@ object EchoAlgorithm {
           if (isInitiator) {
             ctx.log.info(s"[$nodeId] Initiating echo wave")
             currentWaveId += 1
-            broadcast(Wave(nodeId, currentWaveId))
+            broadcast(Wave(nodeId, currentWaveId, ctx.self))
             if (peers.isEmpty) {
               ctx.log.info(s"[$nodeId] No peers - algorithm complete")
             }
           }
           Behaviors.same
         
-        case Wave(initiator, waveId) =>
+        case Wave(initiator, waveId, sender) =>
           if (!waveReceived) {
             waveReceived = true
             currentWaveId = waveId
-            parent = Some(ctx.sender())
+            parent = Some(sender)
             ctx.log.info(s"[$nodeId] Received wave from $initiator, forwarding to neighbors")
             
             // Forward to all neighbors except parent
-            peers.filterNot(_ == ctx.sender()).foreach(_ ! Wave(initiator, waveId))
+            peers.filterNot(_ == sender).foreach(_ ! Wave(initiator, waveId, ctx.self))
             
             // If no children, send echo immediately
             if (peers.size <= 1) {
@@ -63,8 +63,8 @@ object EchoAlgorithm {
           }
           Behaviors.same
         
-        case Echo(from, waveId) if waveId == currentWaveId =>
-          receivedEchoes = receivedEchoes + ctx.sender()
+        case Echo(from, waveId, sender) if waveId == currentWaveId =>
+          receivedEchoes = receivedEchoes + sender
           ctx.log.info(s"[$nodeId] Received echo from $from (${receivedEchoes.size}/${peers.size - 1})")
           
           // If received echoes from all children, send echo to parent
@@ -94,7 +94,7 @@ object EchoAlgorithm {
     private def sendEcho(ctx: ActorContext[DistributedMessage]): Unit = {
       parent.foreach { p =>
         ctx.log.info(s"[$nodeId] Sending echo to parent")
-        p ! Echo(nodeId, currentWaveId)
+        p ! Echo(nodeId, currentWaveId, ctx.self)
       }
     }
   }
